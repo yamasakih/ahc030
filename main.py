@@ -4,6 +4,7 @@ from random import randint
 from pprint import pprint
 from functools import partial
 from collections import deque
+import heapq
 
 
 def debug(*args, end="\n") -> None:  # type: ignore
@@ -27,7 +28,7 @@ D: list[list[int]]  # 掘って実際に調べた油田の量
 G: list[list[list[int]]]  # 各油田のパーツ同士の結合情報
 
 
-def debug_list(P: list[list[Any]], to_int: Union[float, list[int]] = -1) -> None:
+def debug_p(to_int: Union[float, list[int]] = -1) -> None:
     if type(to_int) != list:
         if to_int == -1:
             for p in P:
@@ -47,6 +48,19 @@ def debug_list(P: list[list[Any]], to_int: Union[float, list[int]] = -1) -> None
         debug(f"{Q=}")
         for q in Q:
             debug(f"{AHC30} {' '.join(qi for qi in q)}")
+
+
+def debug_d() -> None:
+    for i in range(N):
+        line = ""
+        for j in range(N):
+            if D[i][j] == -1:
+                line += "-1 "
+            elif D[i][j] == 0:
+                line += f" \033[32m{D[i][j]}\033[0m "
+            else:
+                line += f" \033[34m{D[i][j]}\033[0m "
+        debug(f"{AHC30} {line}")
 
 
 def estimate(x: int, y: int, i: int) -> tuple[float, int]:
@@ -84,7 +98,7 @@ def play_random() -> None:
     C = [[0] * N for _ in range(N)]
     D = [[-1] * N for _ in range(N)]
     # ランダムな場所でいずれかの油田の形で占う
-    times = 75
+    times = 50
     while times > 0:
         # ランダムに配置する油田のインデックスを決める
         i = randint(0, M - 1)
@@ -111,20 +125,58 @@ def play_random() -> None:
             y = sy + dy
             P[x][y] = (P[x][y] * C[x][y] + oil_value) / (C[x][y] + 1)
             C[x][y] += 1
-    debug_list(P, to_int=-1)
-    debug(f"{AHC30} ---------------------------")
-    debug_list(P, to_int=[0.1, 0.3, 0.4, 10])
 
-    # 最も高確率で油田がある場所を p 1 で指定し掘る
-    best_i, best_j, best = -1, -1, 0.0
+    # # ランダムな場所をピックアップして占う
+    # times = 50
+    # while times > 0:
+    #     k = 9
+    #     fields = set([])
+    #     while k > 0:
+    #         debug(f"{k=}")
+    #         # ランダムに占う座標を決める
+    #         i = randint(0, N - 1)
+    #         j = randint(0, N - 1)
+    #         if f"{i} {j}" in fields:
+    #             continue
+    #         fields.add(f"{i} {j}")
+    #         k -= 1
+    #     # 占う
+    #     times -= 1
+    #     command = f"q {len(fields)} {' '.join(fields)}"
+    #     print(command)
+    #     debug(f"{AHC30} {command}")
+    #     # 結果を P に反映する
+    #     result = int(input())
+    #     oil_value = result / len(fields)
+    #     for dx, dy in oil:
+    #         x = sx + dx
+    #         y = sy + dy
+    #         P[x][y] = (P[x][y] * C[x][y] + oil_value) / (C[x][y] + 1)
+    #         C[x][y] += 1
+
+    debug_p(to_int=-1)
+    debug(f"{AHC30} ---------------------------")
+    debug_p(to_int=[0.1, 0.3, 0.4, 10])
+
+    # 最も高確率で油田がある場所を p 1 で指定し a 回掘る
+    a = 5
+    q = []
     for i in range(N):
         for j in range(N):
-            if D[i][j] == -1 and best < P[i][j]:
-                best = P[i][j]
-                best_i, best_j = i, j
-    print(f"q 1 {best_i} {best_j}")
-    debug(f"{AHC30} q 1 {best_i} {best_j}")
+            q.append((-P[i][j], i, j))
+    heapq.heapify(q)
+    for _ in range(a):
+        _, best_i, best_j = heapq.heappop(q)
+        print(f"q 1 {best_i} {best_j}")
+        debug(f"{AHC30} q 1 {best_i} {best_j}")
+        result = int(input())
+        D[best_i][best_j] = result
 
+    debug_d()
+
+    # これまでの掘って得られた情報と確率を元に重ね合わせる油田を決める
+    # ! ここからする -> やっぱり一旦路線変更
+    exit()
     result = int(input())
     D[best_i][best_j] = result
     # 結果で次にどうするか決める
@@ -188,12 +240,11 @@ def play_random() -> None:
         q = deque([])
         been = [False] * len(best_oil)
         been[start_idx] = True
-        been[]
         while q:
             at = q.popleft()
             been[at] = True
     debug(f"{AHC30} ---------------------------")
-    debug_list(D, to_int=-1)
+    debug_p(D, to_int=-1)
 
     # コストを確認する
     print("c")
