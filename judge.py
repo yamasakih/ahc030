@@ -107,7 +107,8 @@ def main() -> None:
                 else:
                     # 指定された座標の集合 S の油田埋蔵量の総和 v(S) の近似値を返す
                     is_unique(d, k)
-                    cost += k**0.5
+                    cost += 1 / k**0.5
+                    debug(f"{JUDGE} {cost=}")
                     sum_v = 0
                     for i in range(0, len(d), 2):
                         x, y = d[i], d[i + 1]
