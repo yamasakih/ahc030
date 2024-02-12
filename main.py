@@ -35,7 +35,7 @@ def debug_p(to_int: Union[float, list[int]] = -1) -> None:
                 debug(f"{AHC30} {' '.join(format(pi, '.2f') for pi in p)}")
         else:
             for p in P:
-                debug(f"{AHC30} {' '.join('0' if pi < to_int else '1' for pi in p)}")
+                debug(f"{AHC30} {' '.join('0' if pi < to_int else '1' for pi in p)}")  # type: ignore
     else:
         Q: list[list[Union[int, str]]] = [["-1"] * N for _ in range(N)]
         for i, j in enumerate(to_int):
@@ -47,7 +47,7 @@ def debug_p(to_int: Union[float, list[int]] = -1) -> None:
                         Q[x][y] = str(i)
         debug(f"{Q=}")
         for q in Q:
-            debug(f"{AHC30} {' '.join(qi for qi in q)}")
+            debug(f"{AHC30} {' '.join(qi for qi in q)}")  # type: ignore
 
 
 def debug_d() -> None:
@@ -90,6 +90,25 @@ def estimate(x: int, y: int, i: int) -> tuple[float, int]:
             best_score = score
             best_idx = s
     return best_score, best_idx
+
+
+def play_all_dig() -> None:
+    # drill every square
+    has_oil = []
+    for i in range(N):
+        for j in range(N):
+            print(f"q 1 {i} {j}")
+            debug(f"{AHC30} q 1 {i} {j}")
+            resp = input()
+            if resp != "0":
+                has_oil.append((i, j))
+
+    oil_positions = " ".join(map(lambda x: f"{x[0]} {x[1]}", has_oil))
+    print(f"a {len(has_oil)} {oil_positions}")
+    debug(f"{AHC30} a {len(has_oil)} {oil_positions}")
+    judge = int(input())
+    debug(f"{AHC30} {judge=}")
+    assert judge == 1
 
 
 def play_random() -> None:
@@ -156,7 +175,7 @@ def play_random() -> None:
 
     debug_p(to_int=-1)
     debug(f"{AHC30} ---------------------------")
-    debug_p(to_int=[0.1, 0.3, 0.4, 10])
+    debug_p(to_int=[0.1, 0.3, 0.4, 10])  # type: ignore
 
     # 最も高確率で油田がある場所を p 1 で指定し a 回掘る
     a = 5
@@ -282,7 +301,9 @@ def main() -> None:
                         G[m][T[i][j]].append(T[nx][ny])
     debug(f"{AHC30} {oil_ends=}")
 
-    play_random()
+    # play_random()
+    # play_brute_force()
+    play_all_dig()
 
 
 if __name__ == "__main__":
