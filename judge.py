@@ -64,7 +64,7 @@ def predict(vs: int, k: int) -> int:
     mu = (k - vs) * eps + vs * (1 - eps)
     sigma = (k * eps * (1 - eps)) ** 0.5
     x = gauss(mu, sigma)
-    debug(f"{JUDGE} {mu=}, {sigma=:0.4f}, {x=:0.4f}")
+    debug(f"{JUDGE} {vs=}, {mu=:0.4f}, {sigma=:0.4f}, {x=:0.4f}")
     return max(0, round(x))
 
 
@@ -139,6 +139,9 @@ def main() -> None:
                     debug(f"{JUDGE} {1}")
                     debug(f"{JUDGE} {cost=}")
                     exit()
+            case "c":
+                # 本来ない機能。現在のコストを返す
+                debug(f"{JUDGE} {cost=}")
 
 
 if __name__ == "__main__":
