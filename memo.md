@@ -30,10 +30,11 @@
 - 単純なランダムだといったりきたりになるからスムースなランダムを使う
 - 正方形タイプ、横長長方形タイプ、縦長長方形タイプと、油田がおけるエリアと油田を分けると良さそう
 - ビットで現在の様子を保存すると良さそう
+- Rust の公式のコードと judge に差がないか確認する -> gauss 分布を使わないようにしたけど使うときと差が出るか確認する
 
 ## shell script
 ### test case すべてに実行する場合
-for i in {0000..0099}; do oj t/r "./judge.py tests/in/$i.txt" -c "python main.py" &> "tests/out/trial00X/$i.log"; done
+for i in {0000..0099}; do oj t/r "./judge.py tests/in/$i.txt" -c "pypy main.py" &> "tests/out/trial00X/$i.log"; done
 
 ### log から末尾を取り出す場合
 for i in {0001..0099}; do tail -n 1 "tests/out/trial00X/$i.log"; done > "tests/out/trial00X/check.log"
@@ -54,6 +55,9 @@ Sample submission -> 12696000000
 - N と M が小さい時は油田の配置を全探索するようにした。それ以外の時は sample submission と同様。確率の低いところから 0 で詰めていき考えられるパターンが１通りになったら終わる。 -> 12105000000
 
 ## Trial004
+- とりあえずで Sample submission の play_all_dig は油田がもうなくても掘り続けるので総油田量分発見したらもう掘らないようにした。
+
+## Trial005 (予定)
 - Trial003 は各油田の左上の座標が１パターンしか残らなかったら打ち切るようにしたがそうすると 0010 などのように重なり合わせた油田の形によっては判明しない場合があるから、重なり合わせた油田の形がユニークになるかどうかに変更する。
 
 
