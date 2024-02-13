@@ -27,6 +27,7 @@ P: list[list[float]]  # 油田がある確率
 C: list[list[float]]  # 何回占ったか
 D: list[list[int]]  # 掘って実際に調べた油田の量
 G: list[list[list[int]]]  # 各油田のパーツ同士の結合情報
+S: list[int]  # 各油田の面積
 
 
 def debug_p(to_int: Union[float, list[int]] = -1) -> None:
@@ -99,16 +100,42 @@ def play_all_dig() -> None:
     for i in range(N):
         for j in range(N):
             print(f"q 1 {i} {j}")
-            debug(f"{AHC30} q 1 {i} {j}")
+            # debug(f"{AHC30} q 1 {i} {j}")  # ! comment when submittion
             resp = input()
             if resp != "0":
                 has_oil.append((i, j))
 
     oil_positions = " ".join(map(lambda x: f"{x[0]} {x[1]}", has_oil))
     print(f"a {len(has_oil)} {oil_positions}")
-    debug(f"{AHC30} a {len(has_oil)} {oil_positions}")
+    # debug(f"{AHC30} a {len(has_oil)} {oil_positions}")  # ! comment when submittion
     judge = int(input())
-    debug(f"{AHC30} {judge=}")
+    # debug(f"{AHC30} {judge=}")  # ! comment when submittion
+    assert judge == 1
+
+
+def play_all_dig_with_counting() -> None:
+    """
+    play_all_dig と同じく愚直に掘っていくが総油田量が与えられた油田の面積と等しくなったら掘るのをやめる
+    """
+    oil_value = sum(S)
+    has_oil = []
+    for i in range(N):
+        for j in range(N):
+            print(f"q 1 {i} {j}")
+            # debug(f"{AHC30} q 1 {i} {j}")  # ! comment when submittion
+            resp = int(input())
+            if resp != 0:
+                has_oil.append((i, j))
+                oil_value -= resp
+            if oil_value == 0:
+                break
+        if oil_value == 0:
+            break
+    oil_positions = " ".join(map(lambda x: f"{x[0]} {x[1]}", has_oil))
+    print(f"a {len(has_oil)} {oil_positions}")
+    # debug(f"{AHC30} a {len(has_oil)} {oil_positions}")  # ! comment when submittion
+    judge = int(input())
+    # debug(f"{AHC30} {judge=}")  # ! comment when submittion
     assert judge == 1
 
 
@@ -150,14 +177,14 @@ def play_brute_force() -> None:
                     y = sy + dy
                     # debug(f"{x=}, {y=}")
                     B[x][y] += 1
-    debug_b()
+    # debug_b()  # ! comment when submittion
     # B の 油田が存在しないところを P, D に反映する
     for i in range(N):
         for j in range(N):
             if B[i][j] == 0:
                 P[i][j] = 0
                 D[i][j] = 0
-    debug_d()
+    # debug_d()  # ! comment when submittion
     # (2, 2), (2, 5), ..., (5, 2), (5, 5), ... と格子状に掘っていく
     for i in range(2, N, 3):
         for j in range(2, N, 3):
@@ -168,8 +195,8 @@ def play_brute_force() -> None:
             result = int(input())
             D[i][j] = result
             P[i][j] = result
-    debug(f"{AHC30} ---------------------------")
-    debug_d()
+    # debug(f"{AHC30} ---------------------------")  # ! comment when submittion
+    # debug_d()  # ! comment when submittion
 
     def is_ok(products: Any, B: Any) -> tuple[bool, Any]:
         for i, (sx, sy) in enumerate(products):
@@ -201,12 +228,12 @@ def play_brute_force() -> None:
             if ok:
                 products.append(products_)
                 B = B_
-        debug(f"{AHC30} {len(products)=}")
-        debug_b(4)
+        # debug(f"{AHC30} {len(products)=}")  # ! comment when submittion
+        # debug_b(4)  # ! comment when submittion
         # products の要素が１つだけになったら確定
         if len(products) == 1:
             product = products[0]
-            debug(f"{product=}")
+            # debug(f"{product=}")  # ! comment when submittion
             oil_positions = set([])
             for i, (sx, sy) in enumerate(product):
                 oil = oils[i]
@@ -214,10 +241,12 @@ def play_brute_force() -> None:
                     x = sx + dx
                     y = sy + dy
                     oil_positions.add(f"{x} {y}")
-            debug(f"{AHC30} a {len(oil_positions)} {' '.join(oil_positions)}")
+            # debug(  # ! comment when submittion
+            #     f"{AHC30} a {len(oil_positions)} {' '.join(oil_positions)}"  # ! comment when submittion
+            # )  # ! comment when submittion
             print(f"a {len(oil_positions)} {' '.join(oil_positions)}")
             judge = int(input())
-            debug(f"{AHC30} {judge=}")
+            # debug(f"{AHC30} {judge=}")  # ! comment when submittion
             assert judge == 1
             exit()
         # products の要素が 1 にしぼりきれないが D が先にすべて埋まる場合があるのでそれも確定
@@ -228,10 +257,12 @@ def play_brute_force() -> None:
                 for j in range(N):
                     if D[i][j] != 0:
                         oil_positions.add(f"{i} {j}")
-            debug(f"{AHC30} a {len(oil_positions)} {' '.join(oil_positions)}")
+            # debug(  # ! comment when submittion
+            #     f"{AHC30} a {len(oil_positions)} {' '.join(oil_positions)}"  # ! comment when submittion
+            # )  # ! comment when submittion
             print(f"a {len(oil_positions)} {' '.join(oil_positions)}")
             judge = int(input())
-            debug(f"{AHC30} {judge=}")
+            # debug(f"{AHC30} {judge=}")  # ! comment when submittion
             assert judge == 1
             exit()
         # B の 油田が存在しないところを P, D に反映する
@@ -240,7 +271,7 @@ def play_brute_force() -> None:
                 if B[i][j] == 0:
                     P[i][j] = 0
                     D[i][j] = 0
-        debug_d()
+        # debug_d()  # ! comment when submittion
         # B の確率が低いところから 5 個掘る
         q = []
         r = 5
@@ -257,12 +288,12 @@ def play_brute_force() -> None:
                 break
             _, best_i, best_j = heapq.heappop(q)
             print(f"q 1 {best_i} {best_j}")
-            debug(f"{AHC30} q 1 {best_i} {best_j}")
+            # debug(f"{AHC30} q 1 {best_i} {best_j}")  # ! comment when submittion
             result = int(input())
             D[best_i][best_j] = result
             P[best_i][best_j] = result
-        debug(f"{AHC30} ---------------------------")
-        debug_d()
+        # debug(f"{AHC30} ---------------------------")  # ! comment when submittion
+        # debug_d()  # ! comment when submittion
 
     print("c")
 
@@ -426,14 +457,16 @@ def play_random() -> None:
 
 
 def main() -> None:
-    global N, M, eps, G
+    global N, M, eps, G, S
     line = input().split()
     N = int(line[0])
     M = int(line[1])
     eps = float(line[2])
     G = [[[] for _ in range(N * N + 1)] for _ in range(M)]
+    S = [0] * M
     for m in range(M):
         line = input().split()
+        S[m] = int(line[0])
         ps = []
         end_x, end_y = -1, -1
         for i in range(int(line[0])):
@@ -455,14 +488,15 @@ def main() -> None:
                     nx, ny = i + dx, j + dy
                     if 0 <= nx <= end_x and 0 <= ny <= end_y and T[nx][ny] != -1:
                         G[m][T[i][j]].append(T[nx][ny])
-    debug(f"{AHC30} {oil_ends=}")
+    # debug(f"{AHC30} {oil_ends=}")  # ! comment when submittion
 
     # play_random()
     # play_all_dig()
     if N**2**M <= 200000000:
         play_brute_force()
     else:
-        play_all_dig()
+        # play_all_dig()
+        play_all_dig_with_counting()
 
 
 if __name__ == "__main__":
