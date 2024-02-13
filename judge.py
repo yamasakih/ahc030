@@ -1,7 +1,8 @@
 #! /root/.pyenv/versions/3.11.4/bin/python
 import sys
 from pprint import pprint
-from random import gauss
+
+# from random import gauss
 from functools import partial
 
 
@@ -23,6 +24,7 @@ E: list[float] = []
 lines: list[str]
 oils: set[tuple[int, int]] = set()
 cost: int = 0
+num_responses: int = -1
 
 
 def read_input(input_data: str) -> None:
@@ -63,13 +65,14 @@ def predict(vs: int, k: int) -> int:
     """
     mu = (k - vs) * eps + vs * (1 - eps)
     sigma = (k * eps * (1 - eps)) ** 0.5
-    x = gauss(mu, sigma)
-    debug(f"{JUDGE} {vs=}, {mu=:0.4f}, {sigma=:0.4f}, {x=:0.4f}")
+    x = mu + E[num_responses] * sigma
+    # x = gauss(mu, sigma)
+    debug(f"{JUDGE} {vs=}, {mu=:0.4f}, {sigma=:0.4f}, {x=:0.4f}, {E[num_responses]=}")
     return max(0, round(x))
 
 
 def main() -> None:
-    global cost
+    global cost, num_responses
     args = sys.argv
     input_data = args[1]
 
@@ -95,6 +98,7 @@ def main() -> None:
         # debug(f"{JUDGE} {type_}, {query=}")
         match type_:
             case "q":
+                num_responses += 1
                 k, *d = query
                 assert k >= 1
                 if k == 1:
@@ -108,7 +112,7 @@ def main() -> None:
                     # 指定された座標の集合 S の油田埋蔵量の総和 v(S) の近似値を返す
                     is_unique(d, k)
                     cost += 1 / k**0.5
-                    debug(f"{JUDGE} {cost=}")
+                    debug(f"{JUDGE} {cost=:0.4f}")
                     sum_v = 0
                     for i in range(0, len(d), 2):
                         x, y = d[i], d[i + 1]
@@ -118,6 +122,7 @@ def main() -> None:
                     debug(f"{JUDGE} {x}")
             case "a":
                 # 与えられた情報と油田の場所が一致しているか判定し結果を返す
+                num_responses += 1
                 cost += 1
                 count, *d = query
                 # debug(f"{JUDGE} {count=} {d=}")
