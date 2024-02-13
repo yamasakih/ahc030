@@ -1,3 +1,4 @@
+import itertools
 import sys
 from typing import Any, Final, Union
 from random import randint
@@ -109,6 +110,161 @@ def play_all_dig() -> None:
     judge = int(input())
     debug(f"{AHC30} {judge=}")
     assert judge == 1
+
+
+def play_brute_force() -> None:
+    def debug_b(d: int = 2) -> None:
+        if d == 2:
+            for i in range(N):
+                line = ""
+                for j in range(N):
+                    if B[i][j] == 0:
+                        line += f" \033[32m{B[i][j]:02}\033[0m "
+                    else:
+                        line += f" \033[34m{B[i][j]:02}\033[0m "
+                debug(f"{AHC30} {line}")
+        elif d == 4:
+            for i in range(N):
+                line = ""
+                for j in range(N):
+                    if B[i][j] == 0:
+                        line += f" \033[32m{B[i][j]:04}\033[0m "
+                    else:
+                        line += f" \033[34m{B[i][j]:04}\033[0m "
+                debug(f"{AHC30} {line}")
+
+    # M が小さい場合にすべての油田をずらしながら配置して得られる情報を利用する
+    global C, P, D, G
+    P = [[0] * N for _ in range(N)]
+    C = [[0] * N for _ in range(N)]
+    D = [[-1] * N for _ in range(N)]
+    B = [[0] * N for _ in range(N)]  # 油田が存在することがあるかどうか
+    # すべての左上の座標を全探索し角の一度も油田が存在し得ない場所を得る
+    for i in range(M):
+        oil = oils[i]
+        height, width = oil_ends[i]
+        for sx in range(N - height):
+            for sy in range(N - width):
+                for dx, dy in oil:
+                    x = sx + dx
+                    y = sy + dy
+                    # debug(f"{x=}, {y=}")
+                    B[x][y] += 1
+    debug_b()
+    # B の 油田が存在しないところを P, D に反映する
+    for i in range(N):
+        for j in range(N):
+            if B[i][j] == 0:
+                P[i][j] = 0
+                D[i][j] = 0
+    debug_d()
+    # (2, 2), (2, 5), ..., (5, 2), (5, 5), ... と格子状に掘っていく
+    for i in range(2, N, 3):
+        for j in range(2, N, 3):
+            if D[i][j] != -1:
+                continue
+            print(f"q 1 {i} {j}")
+            debug(f"{AHC30} q 1 {i} {j}")
+            result = int(input())
+            D[i][j] = result
+            P[i][j] = result
+    debug(f"{AHC30} ---------------------------")
+    debug_d()
+
+    def is_ok(products: Any, B: Any) -> tuple[bool, Any]:
+        for i, (sx, sy) in enumerate(products):
+            oil = oils[i]
+            for dx, dy in oil:
+                x = sx + dx
+                y = sy + dy
+                if x >= N or y >= N:
+                    return False, None
+                if D[x][y] == 0:
+                    return False, None
+            # k だったので B に反映する
+            for dx, dy in oil:
+                x = sx + dx
+                y = sy + dy
+                B[x][y] += 1
+        return True, B
+
+    # 以下のフローを数回繰り返す
+    for _ in range(100):
+        # これまでの情報で存在することができるすべての組み合わせの油田の場所を調べる
+        # ついでに OK な products のみで探索し一度も油田が存在し得ない場所を得る
+        B = [[0] * N for _ in range(N)]  # 油田が存在することがあるかどうか
+        products = []
+        for products_ in itertools.product(
+            list(itertools.product(range(N), repeat=2)), repeat=M
+        ):
+            ok, B_ = is_ok(products_, B)
+            if ok:
+                products.append(products_)
+                B = B_
+        debug(f"{AHC30} {len(products)=}")
+        debug_b(4)
+        # products の要素が１つだけになったら確定
+        if len(products) == 1:
+            product = products[0]
+            debug(f"{product=}")
+            oil_positions = set([])
+            for i, (sx, sy) in enumerate(product):
+                oil = oils[i]
+                for dx, dy in oil:
+                    x = sx + dx
+                    y = sy + dy
+                    oil_positions.add(f"{x} {y}")
+            debug(f"{AHC30} a {len(oil_positions)} {' '.join(oil_positions)}")
+            print(f"a {len(oil_positions)} {' '.join(oil_positions)}")
+            judge = int(input())
+            debug(f"{AHC30} {judge=}")
+            assert judge == 1
+            exit()
+        # products の要素が 1 にしぼりきれないが D が先にすべて埋まる場合があるのでそれも確定
+        if all(D[i][j] != -1 for i in range(N) for j in range(N)):
+            debug(f"{AHC30} all D is filled")
+            oil_positions = set([])
+            for i in range(N):
+                for j in range(N):
+                    if D[i][j] != 0:
+                        oil_positions.add(f"{i} {j}")
+            debug(f"{AHC30} a {len(oil_positions)} {' '.join(oil_positions)}")
+            print(f"a {len(oil_positions)} {' '.join(oil_positions)}")
+            judge = int(input())
+            debug(f"{AHC30} {judge=}")
+            assert judge == 1
+            exit()
+        # B の 油田が存在しないところを P, D に反映する
+        for i in range(N):
+            for j in range(N):
+                if B[i][j] == 0:
+                    P[i][j] = 0
+                    D[i][j] = 0
+        debug_d()
+        # B の確率が低いところから 5 個掘る
+        q = []
+        r = 5
+        for i in range(N):
+            for j in range(N):
+                if D[i][j] != -1:
+                    continue
+                if B[i][j] == 0:
+                    continue
+                q.append((B[i][j], i, j))
+        heapq.heapify(q)
+        for _ in range(r):
+            if not q:
+                break
+            _, best_i, best_j = heapq.heappop(q)
+            print(f"q 1 {best_i} {best_j}")
+            debug(f"{AHC30} q 1 {best_i} {best_j}")
+            result = int(input())
+            D[best_i][best_j] = result
+            P[best_i][best_j] = result
+        debug(f"{AHC30} ---------------------------")
+        debug_d()
+
+    print("c")
 
 
 def play_random() -> None:
@@ -302,8 +458,11 @@ def main() -> None:
     debug(f"{AHC30} {oil_ends=}")
 
     # play_random()
-    # play_brute_force()
-    play_all_dig()
+    # play_all_dig()
+    if N**2**M <= 200000000:
+        play_brute_force()
+    else:
+        play_all_dig()
 
 
 if __name__ == "__main__":
