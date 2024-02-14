@@ -19,7 +19,7 @@ for file in files:
         S = []
         for _ in range(M):
             line = f.readline().split()
-            debug(f"{line=}")
+            # debug(f"{line=}")
             S.append(int(line[0]))
         S = sorted(S)
         min_S = S[0]
@@ -46,6 +46,14 @@ df = pd.DataFrame(info).T
 df = df.astype({"N": int, "M": int, "min_S": int, "med_S": int, "max_S": int, "overlap": float})
 # overlap を小数第２位までに丸める
 df["overlap"] = df["overlap"].round(2)
+
+# 各 Trial のスコアをカラムとして追加する
+dir = Path("tests/out")
+files = list(dir.glob("*/summary.log"))
+for file in files:
+    name = file.parent.name.replace("trial", "tri")
+    df[name] = [float(f) for f in file.read_text().strip().split("\n")]
+    df[name] = df[name].round(2)
 debug(f"{df}")
 
-df.to_csv("tests/info.csv", sep="\t")
+df.to_csv("tests/info.tsv", sep="\t")
