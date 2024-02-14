@@ -1,7 +1,8 @@
+from dataclasses import dataclass, field
 import itertools
 import sys
-from typing import Any, Final, Union
-from random import randint
+from typing import Any, Final, Optional, Union
+from random import gauss, randint
 from pprint import pprint
 from functools import partial
 from collections import deque
@@ -100,16 +101,16 @@ def play_all_dig() -> None:
     for i in range(N):
         for j in range(N):
             print(f"q 1 {i} {j}")
-            # debug(f"{AHC30} q 1 {i} {j}")  # ! comment when submittion
+            debug(f"{AHC30} q 1 {i} {j}")  # ! comment when submittion
             resp = input()
             if resp != "0":
                 has_oil.append((i, j))
 
     oil_positions = " ".join(map(lambda x: f"{x[0]} {x[1]}", has_oil))
     print(f"a {len(has_oil)} {oil_positions}")
-    # debug(f"{AHC30} a {len(has_oil)} {oil_positions}")  # ! comment when submittion
+    debug(f"{AHC30} a {len(has_oil)} {oil_positions}")  # ! comment when submittion
     judge = int(input())
-    # debug(f"{AHC30} {judge=}")  # ! comment when submittion
+    debug(f"{AHC30} {judge=}")  # ! comment when submittion
     assert judge == 1
 
 
@@ -122,7 +123,7 @@ def play_all_dig_with_counting() -> None:
     for i in range(N):
         for j in range(N):
             print(f"q 1 {i} {j}")
-            # debug(f"{AHC30} q 1 {i} {j}")  # ! comment when submittion
+            debug(f"{AHC30} q 1 {i} {j}")  # ! comment when submittion
             resp = int(input())
             if resp != 0:
                 has_oil.append((i, j))
@@ -133,13 +134,79 @@ def play_all_dig_with_counting() -> None:
             break
     oil_positions = " ".join(map(lambda x: f"{x[0]} {x[1]}", has_oil))
     print(f"a {len(has_oil)} {oil_positions}")
-    # debug(f"{AHC30} a {len(has_oil)} {oil_positions}")  # ! comment when submittion
+    debug(f"{AHC30} a {len(has_oil)} {oil_positions}")  # ! comment when submittion
     judge = int(input())
-    # debug(f"{AHC30} {judge=}")  # ! comment when submittion
+    debug(f"{AHC30} {judge=}")  # ! comment when submittion
     assert judge == 1
 
 
+@dataclass
+class Area:
+    x: list[int] = field(default_factory=list)
+    y: list[int] = field(default_factory=list)
+
+    def scry(self) -> None:
+        fields = []
+        for x, y in zip(self.x, self.y):
+            fields.append(f"{x} {y}")
+        command = f"q {len(fields)} {' '.join(fields)}"
+        print(command)
+        debug(f"{AHC30} {command}")
+        # 結果を P に反映する
+        result = int(input())
+        oil_value = result / len(fields)
+        for x, y in zip(self.x, self.y):
+            P[x][y] = (P[x][y] * C[x][y] + oil_value) / (C[x][y] + 1)
+            C[x][y] += 1
+
+
+@dataclass
+class State:
+    oils: list[tuple[int, int]] = field(default_factory=list)
+    overlapped_oils: list[list[int]] = field(
+        default_factory=lambda: [[0] * N for _ in range(N)]
+    )
+    scried_oils: list[list[int]] = field(
+        default_factory=lambda: [[0] * N for _ in range(N)]
+    )
+
+    def dist(self) -> float:
+        # P との距離を求める
+        ret = 0
+        for i in range(N):
+            for j in range(N):
+                ret += abs(P[i][j] - self.scried_oils[i][j])
+        return ret
+
+    def answer(self) -> None:
+        oil_positions = []
+        for i in range(N):
+            for j in range(N):
+                if self.overlapped_oils[i][j] != 0:
+                    oil_positions.append(f"{i} {j}")
+        debug(  # ! comment when submittion
+            f"{AHC30} a {len(oil_positions)} {' '.join(oil_positions)}"  # ! comment when submittion
+        )  # ! comment when submittion
+        print(f"a {len(oil_positions)} {' '.join(oil_positions)}")
+
+
+def predict(vs: int, k: int) -> int:
+    """
+    パラメータepsを用いて、以下の平均 μ と分散 σ^{2} の正規分布からサンプルされた値をxとする。
+    このとき、情報として得られる値は max(0,round(x)) である。
+    平均 μ=(k−v(S))ϵ+v(S)(1−ϵ) 分散 σ2 = kϵ(1−ϵ)
+    """
+    mu = (k - vs) * eps + vs * (1 - eps)
+    sigma = (k * eps * (1 - eps)) ** 0.5
+    # x = mu + E[num_responses] * sigma
+    x = gauss(mu, sigma)
+    # debug(f"{AHC30} {vs=}, {mu=:0.4f}, {sigma=:0.4f}, {x=:0.4f}, {max(0, round(x))=}")
+    return max(0, round(x))
+
+
 def play_brute_force() -> None:
+    # N と M が小さい場合にすべての油田をずらしながら配置して得られる情報を利用する
+
     def debug_b(d: int = 2) -> None:
         if d == 2:
             for i in range(N):
@@ -160,13 +227,13 @@ def play_brute_force() -> None:
                         line += f" \033[34m{B[i][j]:04}\033[0m "
                 debug(f"{AHC30} {line}")
 
-    # M が小さい場合にすべての油田をずらしながら配置して得られる情報を利用する
     global C, P, D, G
     P = [[0] * N for _ in range(N)]
     C = [[0] * N for _ in range(N)]
     D = [[-1] * N for _ in range(N)]
     B = [[0] * N for _ in range(N)]  # 油田が存在することがあるかどうか
-    # すべての左上の座標を全探索し角の一度も油田が存在し得ない場所を得る
+    # すべての左上の座標を全探索し、角が一度も油田が存在し得ない場所を得る
+    tmp = [[0] * N for _ in range(N)]
     for i in range(M):
         oil = oils[i]
         height, width = oil_ends[i]
@@ -176,18 +243,25 @@ def play_brute_force() -> None:
                     x = sx + dx
                     y = sy + dy
                     # debug(f"{x=}, {y=}")
-                    B[x][y] += 1
-    # debug_b()  # ! comment when submittion
+                    tmp[x][y] |= 1
+        for i in range(N):
+            for j in range(N):
+                B[i][j] += tmp[i][j]
+    debug_b()  # ! comment when submittion
     # B の 油田が存在しないところを P, D に反映する
     for i in range(N):
         for j in range(N):
             if B[i][j] == 0:
                 P[i][j] = 0
                 D[i][j] = 0
-    # debug_d()  # ! comment when submittion
+    debug_d()  # ! comment when submittion
     # (2, 2), (2, 5), ..., (5, 2), (5, 5), ... と格子状に掘っていく
-    for i in range(2, N, 3):
-        for j in range(2, N, 3):
+    if eps > 0.05:
+        step = 2
+    else:
+        step = 3
+    for i in range(2, N, step):
+        for j in range(2, N, step):
             if D[i][j] != -1:
                 continue
             print(f"q 1 {i} {j}")
@@ -195,10 +269,11 @@ def play_brute_force() -> None:
             result = int(input())
             D[i][j] = result
             P[i][j] = result
-    # debug(f"{AHC30} ---------------------------")  # ! comment when submittion
-    # debug_d()  # ! comment when submittion
+    debug(f"{AHC30} ---------------------------")  # ! comment when submittion
+    debug_d()  # ! comment when submittion
 
-    def is_ok(products: Any, B: Any) -> tuple[bool, Any]:
+    def is_ok(products: Any, B: Any) -> tuple[bool, Optional[State]]:
+        B = [[0] * N for _ in range(N)]  # 重ね合わせた油田の配置
         for i, (sx, sy) in enumerate(products):
             oil = oils[i]
             for dx, dy in oil:
@@ -208,14 +283,137 @@ def play_brute_force() -> None:
                     return False, None
                 if D[x][y] == 0:
                     return False, None
-            # k だったので B に反映する
+            # ok だったので B に反映する
             for dx, dy in oil:
                 x = sx + dx
                 y = sy + dy
                 B[x][y] += 1
-        return True, B
+        state = State()
+        state.overlapped_oils = B
+        state.oils = products
+        return True, state
 
-    # 以下のフローを数回繰り返す
+    # すべてのマスを小さな四角形で一度ずつ占うようにする
+    # 四角形を横長、縦長、正方形のいずれにするか調べる。縦 / 横 が 1.5 以上なら横長、逆なら縦長、それ以外なら正方形
+    rectangle_counts = [0, 0, 0]  # 前から 0: 正方形, 1: 横長, 2: 縦長
+    for m in range(M):
+        height, width = oil_ends[m]
+        if height / width > 1.5:
+            rectangle_counts[2] += 1
+        elif width / height > 1.5:
+            rectangle_counts[1] += 1
+        else:
+            rectangle_counts[0] += 1
+    debug(f"{AHC30} {rectangle_counts=}")  # ! comment when submittion
+    i = max((j, i) for i, j in enumerate(rectangle_counts))[1]
+    scry_type = ""
+    match i:
+        case 0:  # 正方形
+            scry_type = "square"
+            # 3 x 3 の正方形で探索する
+            scry_oil_width = 3
+            scry_oil_height = 3
+        case 1:  # 横長
+            scry_type = "yokonaga"
+            # 2 x 3 の横長で探索する
+            scry_oil_width = 2
+            scry_oil_height = 3
+        case 2:  # 縦長
+            scry_type = "tatenaga"
+            # 3 x 2 の縦長で探索する
+            scry_oil_width = 3
+            scry_oil_height = 2
+    debug(f"{AHC30} {i=} {scry_type=}")  # ! comment when submittion
+
+    # N x N のマスを scry_oil で探索するため Area に分割する
+    areas: list[Area] = []
+    for i in range(0, N, scry_oil_height):
+        for j in range(0, N, scry_oil_width):
+            area = Area()
+            for k in range(scry_oil_height):
+                for l in range(scry_oil_width):
+                    if i + k < N and j + l < N and D[i + k][j + l] == -1:
+                        area.x.append(i + k)
+                        area.y.append(j + l)
+            if area.x:
+                areas.append(area)
+    debug(f"{AHC30} {len(areas)=}")  # ! comment when submittion
+    # debug(f"{AHC30} {areas=}")  # ! comment when submittion
+
+    # すべてのエリアで占う
+    for area in areas:
+        area.scry()
+    debug_p()  # ! comment when submittion
+
+    # 全探索し現在の P の形に似た油田の配置を探す。油田が多すぎる場合はその量に応じて適当に数カ所掘る
+    while True:
+        states = []
+        # overlapped_oil_set = set([])  # TODO あとでハッシュで実装する
+        for products_ in itertools.product(
+            list(itertools.product(range(N), repeat=2)), repeat=M
+        ):
+            ok, state = is_ok(products_, B)
+            if ok:
+                states.append(state)
+        debug(f"{AHC30} {len(states)=}")  # ! comment when submittion
+        # debug(f"{AHC30} {states[0]=}")  # ! comment when submittion
+        # TODO よりキーとなるところを掘るように後で実装したい
+        x = len(states)
+        y = 1000
+        if x > y:
+            while x > y:
+                i = randint(0, N - 1)
+                j = randint(0, N - 1)
+                if D[i][j] == -1:
+                    print(f"q 1 {i} {j}")
+                    debug(f"{AHC30} q 1 {i} {j}")
+                    result = int(input())
+                    D[i][j] = result
+                    P[i][j] = result
+                    x -= y
+                debug_d()
+        else:
+            break
+
+    # AHC30 自身で各 State に対して predict を a 回行いその結果の平均を scried_oils に保存する
+    # a = 100
+    a = 1000
+    for state in states:
+        for _ in range(a):
+            for area in areas:
+                vs = 0
+                k = len(area.x)
+                for x, y in zip(area.x, area.y):
+                    vs += state.overlapped_oils[x][y]
+                result = predict(vs, k)
+                oil_value = result / k
+                for x, y in zip(area.x, area.y):
+                    state.scried_oils[x][y] += oil_value
+        # 平均化する
+        for i in range(N):
+            for j in range(N):
+                state.scried_oils[i][j] /= a
+        # debug(f"{AHC30} {state.scried_oils=}")  # ! comment when submittion
+        # dpprint(state.scried_oils, width=1000)  # ! comment when submittion
+    # 各 State と P の間の距離を求める
+    sorted_dist = sorted([(state.dist(), i) for i, state in enumerate(states)])
+    sorted_idx = [i for _, i in sorted_dist]
+    debug(f"{AHC30} {sorted_dist[:3]=}")  # ! comment when submittion
+    # debug(f"{AHC30} {sorted_idx=}")  # ! comment when submittion
+    debug(states[sorted_dist[0][1]])
+    # 一番距離が近い State を answer として query を送る
+    cur = 0
+    while True:
+        states[sorted_idx[cur]].answer()
+        cur += 1
+        judge = int(input())
+        debug(f"{AHC30} {judge=}")  # ! comment when submittion
+    # assert judge == 1
+        if judge == 1:
+            print("c")
+            exit()
+    exit()
+    """
     for _ in range(100):
         # これまでの情報で存在することができるすべての組み合わせの油田の場所を調べる
         # ついでに OK な products のみで探索し一度も油田が存在し得ない場所を得る
@@ -228,12 +426,12 @@ def play_brute_force() -> None:
             if ok:
                 products.append(products_)
                 B = B_
-        # debug(f"{AHC30} {len(products)=}")  # ! comment when submittion
-        # debug_b(4)  # ! comment when submittion
+        debug(f"{AHC30} {len(products)=}")  # ! comment when submittion
+        debug_b(4)  # ! comment when submittion
         # products の要素が１つだけになったら確定
         if len(products) == 1:
             product = products[0]
-            # debug(f"{product=}")  # ! comment when submittion
+            debug(f"{product=}")  # ! comment when submittion
             oil_positions = set([])
             for i, (sx, sy) in enumerate(product):
                 oil = oils[i]
@@ -241,12 +439,12 @@ def play_brute_force() -> None:
                     x = sx + dx
                     y = sy + dy
                     oil_positions.add(f"{x} {y}")
-            # debug(  # ! comment when submittion
-            #     f"{AHC30} a {len(oil_positions)} {' '.join(oil_positions)}"  # ! comment when submittion
-            # )  # ! comment when submittion
+            debug(  # ! comment when submittion
+                f"{AHC30} a {len(oil_positions)} {' '.join(oil_positions)}"  # ! comment when submittion
+            )  # ! comment when submittion
             print(f"a {len(oil_positions)} {' '.join(oil_positions)}")
             judge = int(input())
-            # debug(f"{AHC30} {judge=}")  # ! comment when submittion
+            debug(f"{AHC30} {judge=}")  # ! comment when submittion
             assert judge == 1
             exit()
         # products の要素が 1 にしぼりきれないが D が先にすべて埋まる場合があるのでそれも確定
@@ -257,12 +455,12 @@ def play_brute_force() -> None:
                 for j in range(N):
                     if D[i][j] != 0:
                         oil_positions.add(f"{i} {j}")
-            # debug(  # ! comment when submittion
-            #     f"{AHC30} a {len(oil_positions)} {' '.join(oil_positions)}"  # ! comment when submittion
-            # )  # ! comment when submittion
+            debug(  # ! comment when submittion
+                f"{AHC30} a {len(oil_positions)} {' '.join(oil_positions)}"  # ! comment when submittion
+            )  # ! comment when submittion
             print(f"a {len(oil_positions)} {' '.join(oil_positions)}")
             judge = int(input())
-            # debug(f"{AHC30} {judge=}")  # ! comment when submittion
+            debug(f"{AHC30} {judge=}")  # ! comment when submittion
             assert judge == 1
             exit()
         # B の 油田が存在しないところを P, D に反映する
@@ -271,7 +469,7 @@ def play_brute_force() -> None:
                 if B[i][j] == 0:
                     P[i][j] = 0
                     D[i][j] = 0
-        # debug_d()  # ! comment when submittion
+        debug_d()  # ! comment when submittion
         # B の確率が低いところから 5 個掘る
         q = []
         r = 5
@@ -288,15 +486,15 @@ def play_brute_force() -> None:
                 break
             _, best_i, best_j = heapq.heappop(q)
             print(f"q 1 {best_i} {best_j}")
-            # debug(f"{AHC30} q 1 {best_i} {best_j}")  # ! comment when submittion
+            debug(f"{AHC30} q 1 {best_i} {best_j}")  # ! comment when submittion
             result = int(input())
             D[best_i][best_j] = result
             P[best_i][best_j] = result
-        # debug(f"{AHC30} ---------------------------")  # ! comment when submittion
-        # debug_d()  # ! comment when submittion
+        debug(f"{AHC30} ---------------------------")  # ! comment when submittion
+        debug_d()  # ! comment when submittion
 
     print("c")
-
+    """
 
 def play_random() -> None:
     global C, P, D, G
@@ -488,11 +686,11 @@ def main() -> None:
                     nx, ny = i + dx, j + dy
                     if 0 <= nx <= end_x and 0 <= ny <= end_y and T[nx][ny] != -1:
                         G[m][T[i][j]].append(T[nx][ny])
-    # debug(f"{AHC30} {oil_ends=}")  # ! comment when submittion
+    debug(f"{AHC30} {oil_ends=}")  # ! comment when submittion
 
     # play_random()
     # play_all_dig()
-    if N**2**M <= 200000000:
+    if (N**2)**M < 10000000:
         play_brute_force()
     else:
         # play_all_dig()
