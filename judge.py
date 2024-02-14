@@ -67,7 +67,7 @@ def predict(vs: int, k: int) -> int:
     sigma = (k * eps * (1 - eps)) ** 0.5
     x = mu + E[num_responses] * sigma
     # x = gauss(mu, sigma)
-    debug(f"{JUDGE} {vs=}, {mu=:0.4f}, {sigma=:0.4f}, {x=:0.4f}, {E[num_responses]=}")
+    debug(f"{JUDGE} {vs=}, {mu=:0.4f}, {sigma=:0.4f}, {x=:0.4f}, {E[num_responses]=}, {max(0, round(x))=}")
     return max(0, round(x))
 
 
@@ -127,7 +127,7 @@ def main() -> None:
                 count, *d = query
                 # debug(f"{JUDGE} {count=} {d=}")
                 assert len(d) % 2 == 0
-                assert len(d) // 2 == len(oils)
+                assert len(d) // 2 == count
                 # 与えられた油田の場所に同じ値が入ってないか判定する
                 is_unique(d, count)
                 for i in range(0, len(d), 2):
