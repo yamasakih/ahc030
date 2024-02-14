@@ -311,18 +311,30 @@ def play_brute_force() -> None:
         case 0:  # 正方形
             scry_type = "square"
             # 3 x 3 の正方形で探索する
-            scry_oil_width = 3
-            scry_oil_height = 3
+            if eps < 0.03:
+                scry_oil_width = 5
+                scry_oil_height = 5
+            else:
+                scry_oil_width = 3
+                scry_oil_height = 3
         case 1:  # 横長
             scry_type = "yokonaga"
             # 2 x 3 の横長で探索する
-            scry_oil_width = 2
-            scry_oil_height = 3
+            if eps < 0.03:
+                scry_oil_width = 4
+                scry_oil_height = 6
+            else:
+                scry_oil_width = 2
+                scry_oil_height = 3
         case 2:  # 縦長
             scry_type = "tatenaga"
             # 3 x 2 の縦長で探索する
-            scry_oil_width = 3
-            scry_oil_height = 2
+            if eps < 0.03:
+                scry_oil_width = 6
+                scry_oil_height = 4
+            else:
+                scry_oil_width = 3
+                scry_oil_height = 2
     # debug(f"{AHC30} {i=} {scry_type=}")  # ! comment when submittion
 
     # N x N のマスを scry_oil で探索するため Area に分割する
@@ -407,7 +419,7 @@ def play_brute_force() -> None:
         states[sorted_idx[cur]].answer()
         cur += 1
         judge = int(input())
-        # debug(f"{AHC30} {judge=}")  # ! comment when submittion
+        debug(f"{AHC30} {judge=}")  # ! comment when submittion
     # assert judge == 1
         if judge == 1:
             print("c")
