@@ -256,7 +256,7 @@ def play_brute_force() -> None:
                 D[i][j] = 0
     debug_d()  # ! comment when submittion
     # (2, 2), (2, 5), ..., (5, 2), (5, 5), ... と格子状に掘っていく
-    if eps > 0.05:
+    if eps > 0.05 or M >= 3:
         step = 2
     else:
         step = 3
