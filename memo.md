@@ -37,16 +37,16 @@
 
 ## shell script
 ### test case すべてに実行する場合
-seq -f "%04g" 0 99 | xargs -I{} -P 8 bash -c 'oj t/r "./judge.py tests/in/$1.txt" -c "pypy main.py" &> "tests/out/trial00X/$1.log"' _ {}
+seq -f "%04g" 0 99 | xargs -I{} -P 8 bash -c 'oj t/r "./judge.py tests/in/$1.txt" -c "pypy main.py" &> "tests/out/trial009/$1.log"' _ {}
 
 ### log から末尾を取り出す場合
-for i in {0000..0099}; do tail -n 1 "tests/out/trial00X/$i.log"; done > "tests/out/trial00X/check.log"
+X=00X; for i in {0000..0099}; do tail -n 1 "tests/out/trial${X}/$i.log"; done > "tests/out/trial${X}/check.log"
 
 ### log からコストをまとめて取り出す場合
-for i in {0000..0099}; do tail -n 3 "tests/out/trial00X/$i.log" | head -n 1 | cut -c 23- ; done > "tests/out/trial00X/summary.log"
+X=00X; for i in {0000..0099}; do tail -n 3 "tests/out/trial${X}/$i.log" | head -n 1 | cut -c 23- ; done > "tests/out/trial${X}/summary.log"
 
 ### summary.log の値を全部足し算する場合
-awk '{sum += $1} END {print sum}' "tests/out/trial00X/summary.log"
+X=00X; awk '{sum += $1} END {print sum}' "tests/out/trial${X}/summary.log"
 
 ## Trial
 ### Trial000 (20597, 12696000000)
@@ -71,10 +71,13 @@ Sample submission -> 12696000000
 - Trial005 に加えて M > 3 なら 2 個間隔で最初に掘るようにした -> TLE
 
 ### Trial007 (15770.2, 10947738764)
-- Trial006 より play_brute_force に行くときの条件を厳しくした ->
+- Trial006 より play_brute_force に行くときの条件を厳しくした
 
-### Trial008 (14510, 10941855645)
+### Trial008 (15741.1, 10941855645)
 - Trial007 より eps が小さい値の play_brute_force をする時、一度に占う面積を大きくした
+
+### Trial009 (15639.1, 10912855645)
+- 単純に掘ってるだけのものを絶対存在しないところを先に調べてそこは掘らないようにした
 
 ## ChatGPT
 現在、競技プログラミングのコンテストに参加しています。以下にコンテストの問題のデータ作成方法を示しますので、そちらを理解した後に私からの追加の質問に答えてください。
