@@ -2,12 +2,14 @@ from dataclasses import dataclass, field
 import itertools
 import sys
 from typing import Any, Final, Optional, Union
-from random import gauss, randint
+from random import gauss, randint, seed
 from pprint import pprint
 from functools import partial
 from collections import deque
 import heapq
 
+
+seed(319)
 
 def debug(*args, end="\n") -> None:  # type: ignore
     print(*args, end=end, file=sys.stderr)
@@ -136,7 +138,77 @@ def play_all_dig_with_counting() -> None:
     print(f"a {len(has_oil)} {oil_positions}")
     # debug(f"{AHC30} a {len(has_oil)} {oil_positions}")  # ! comment when submittion
     judge = int(input())
-    # debug(f"{AHC30} {judge=}")  # ! comment when submittion
+    debug(f"{AHC30} {judge=}")  # ! comment when submittion
+    assert judge == 1
+
+
+def play_all_dig_with_counting_and_superposing() -> None:
+    """
+    先に各図形を端に合わせるように並べ確実に存在しないところは 0 とみなし、
+    play_all_dig_with_countinng と同じく掘っていく
+    """
+    def debug_b(d: int = 2) -> None:
+        if d == 2:
+            for i in range(N):
+                line = ""
+                for j in range(N):
+                    if B[i][j] == 0:
+                        line += f" \033[32m{B[i][j]:02}\033[0m "
+                    else:
+                        line += f" \033[34m{B[i][j]:02}\033[0m "
+                debug(f"{AHC30} {line}")
+        elif d == 4:
+            for i in range(N):
+                line = ""
+                for j in range(N):
+                    if B[i][j] == 0:
+                        line += f" \033[32m{B[i][j]:04}\033[0m "
+                    else:
+                        line += f" \033[34m{B[i][j]:04}\033[0m "
+                debug(f"{AHC30} {line}")
+
+    def superpose():
+        B = [[0] * N for _ in range(N)]  # 重ね合わせた油田の配置
+        for m in range(M):
+            tmp = [[0] * N for _ in range(N)]  # 重ね合わせた油田の配置
+            oil = oils[m]
+            height, width = oil_ends[m]
+            for sx in range(N - height):
+                for sy in range(N - width):
+                    for dx, dy in oil:
+                        x = sx + dx
+                        y = sy + dy
+                        tmp[x][y] |= 1
+            for i in range(N):
+                for j in range(N):
+                    if tmp[i][j] == 1:
+                        B[i][j] += 1 << m
+        return B
+
+    B = superpose()
+    debug_b()
+    # あとは play_all_dig_with_countinng と同じく掘っていく
+    oil_value = sum(S)
+    has_oil = []
+    for i in range(N):
+        for j in range(N):
+            if B[i][j] == 0:
+                continue
+            print(f"q 1 {i} {j}")
+            # debug(f"{AHC30} q 1 {i} {j}")  # ! comment when submittion
+            resp = int(input())
+            if resp != 0:
+                has_oil.append((i, j))
+                oil_value -= resp
+            if oil_value == 0:
+                break
+        if oil_value == 0:
+            break
+    oil_positions = " ".join(map(lambda x: f"{x[0]} {x[1]}", has_oil))
+    print(f"a {len(has_oil)} {oil_positions}")
+    # debug(f"{AHC30} a {len(has_oil)} {oil_positions}")  # ! comment when submittion
+    judge = int(input())
+    debug(f"{AHC30} {judge=}")  # ! comment when submittion
     assert judge == 1
 
 
@@ -702,11 +774,13 @@ def main() -> None:
 
     # play_random()
     # play_all_dig()
+    # play_all_dig_with_counting_and_superposing()
     if (N**2)**M < 2500000:
         play_brute_force()
     else:
         # play_all_dig()
-        play_all_dig_with_counting()
+        # play_all_dig_with_counting()
+        play_all_dig_with_counting_and_superposing()
 
 
 if __name__ == "__main__":
