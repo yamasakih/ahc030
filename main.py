@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 import itertools
 import sys
 from typing import Any, Final, Optional, Union
-from random import gauss, randint, seed
+from random import gauss, randint, seed, sample
 from pprint import pprint
 from functools import partial
 from collections import deque
@@ -10,6 +10,7 @@ import heapq
 
 
 seed(319)
+
 
 def debug(*args, end="\n") -> None:  # type: ignore
     print(*args, end=end, file=sys.stderr)
@@ -142,11 +143,32 @@ def play_all_dig_with_counting() -> None:
     assert judge == 1
 
 
+def superpose() -> list[list[int]]:
+    B = [[0] * N for _ in range(N)]  # 重ね合わせた油田の配置
+    debug(f"{M=}")
+    for m in range(M):
+        tmp = [[0] * N for _ in range(N)]  # ビットで重ね合わせた油田の配置
+        oil = oils[m]
+        height, width = oil_ends[m]
+        for sx in range(N - height):
+            for sy in range(N - width):
+                for dx, dy in oil:
+                    x = sx + dx
+                    y = sy + dy
+                    tmp[x][y] |= 1
+        for i in range(N):
+            for j in range(N):
+                if tmp[i][j] == 1:
+                    B[i][j] += 1 << m
+    return B
+
+
 def play_all_dig_with_counting_and_superposing() -> None:
     """
     先に各図形を端に合わせるように並べ確実に存在しないところは 0 とみなし、
     play_all_dig_with_countinng と同じく掘っていく
     """
+
     def debug_b(d: int = 2) -> None:
         if d == 2:
             for i in range(N):
@@ -166,24 +188,6 @@ def play_all_dig_with_counting_and_superposing() -> None:
                     else:
                         line += f" \033[34m{B[i][j]:04}\033[0m "
                 debug(f"{AHC30} {line}")
-
-    def superpose():
-        B = [[0] * N for _ in range(N)]  # 重ね合わせた油田の配置
-        for m in range(M):
-            tmp = [[0] * N for _ in range(N)]  # 重ね合わせた油田の配置
-            oil = oils[m]
-            height, width = oil_ends[m]
-            for sx in range(N - height):
-                for sy in range(N - width):
-                    for dx, dy in oil:
-                        x = sx + dx
-                        y = sy + dy
-                        tmp[x][y] |= 1
-            for i in range(N):
-                for j in range(N):
-                    if tmp[i][j] == 1:
-                        B[i][j] += 1 << m
-        return B
 
     B = superpose()
     debug_b()
@@ -210,6 +214,7 @@ def play_all_dig_with_counting_and_superposing() -> None:
     judge = int(input())
     debug(f"{AHC30} {judge=}")  # ! comment when submittion
     assert judge == 1
+    exit()
 
 
 @dataclass
@@ -257,7 +262,7 @@ class State:
                 if self.overlapped_oils[i][j] != 0:
                     oil_positions.append(f"{i} {j}")
         # debug(  # ! comment when submittion
-            # f"{AHC30} a {len(oil_positions)} {' '.join(oil_positions)}"  # ! comment when submittion
+        # f"{AHC30} a {len(oil_positions)} {' '.join(oil_positions)}"  # ! comment when submittion
         # )  # ! comment when submittion
         print(f"a {len(oil_positions)} {' '.join(oil_positions)}")
 
@@ -492,7 +497,7 @@ def play_brute_force() -> None:
         cur += 1
         judge = int(input())
         debug(f"{AHC30} {judge=}")  # ! comment when submittion
-    # assert judge == 1
+        # assert judge == 1
         if judge == 1:
             print("c")
             exit()
@@ -579,6 +584,362 @@ def play_brute_force() -> None:
 
     print("c")
     """
+
+
+def farthest_point_sampling(points, initial_idx, n_samples) -> list[tuple[int, int]]:
+    """
+    最遠点サンプリング法 (FPS) を用いて、データ点の集合から多様性のある n_samples 個のサンプルを選択する。
+
+    Parameters:
+    - points: 入力データ点の集合。各要素は (x, y) のタプル。
+    - n_samples: 選択するサンプルの数。
+
+    Returns:
+    - samples: 選択されたサンプルのリスト。
+    """
+
+    def calculate_distance(point, sample) -> int:
+        return abs(point[0] - sample[0]) + abs(point[1] - sample[1])
+
+    n_points = len(points)
+    samples = [points[initial_idx]]
+    while len(samples) < len(points) and len(samples) < n_samples:
+        farthest_distance = 0
+        farthest_point = None
+        for point in points:
+            min_distance_to_samples = min(
+                calculate_distance(point, sample) for sample in samples
+            )
+            if min_distance_to_samples > farthest_distance:
+                farthest_distance = min_distance_to_samples
+                farthest_point = point
+        samples.append(farthest_point)
+    return samples
+
+
+def play_self_scry_loop() -> None:
+    # N と M が大きい場合も play_brute_force のように候補が小さくなるまで効果的に占いと掘るのを繰り返す
+
+    def debug_b(d: int = 2) -> None:
+        if d == 2:
+            for i in range(N):
+                line = ""
+                for j in range(N):
+                    if B[i][j] == 0:
+                        line += f" \033[32m{B[i][j]:02}\033[0m "
+                    else:
+                        line += f" \033[34m{B[i][j]:02}\033[0m "
+                debug(f"{AHC30} {line}")
+        elif d == 4:
+            for i in range(N):
+                line = ""
+                for j in range(N):
+                    if B[i][j] == 0:
+                        line += f" \033[32m{B[i][j]:04}\033[0m "
+                    else:
+                        line += f" \033[34m{B[i][j]:04}\033[0m "
+                debug(f"{AHC30} {line}")
+
+    global C, P, D, G
+    P = [[0] * N for _ in range(N)]
+    C = [[] for _ in range(M)]  # 各油田が配置できる場所
+    D = [[-1] * N for _ in range(N)]
+    B = [[0] * N for _ in range(N)]  # 油田が存在することがあるかどうか
+
+    # 角が一度も油田が存在し得ない場所を得る
+    B = superpose()
+    debug_b()
+    # B の 油田が存在しないところを P, D に反映する
+    for i in range(N):
+        for j in range(N):
+            if B[i][j] == 0:
+                P[i][j] = 0
+                D[i][j] = 0
+
+    # (2, 2), (2, 5), ..., (5, 1), (5, 4), ... と格子状に掘っていく
+    if M >= 10 or eps >= 0.05:
+        step = 2
+    else:
+        step = 3
+    for i in range(2, N, step):
+        margin = 0 if i % 2 == 1 else 1
+        debug(f"{margin=}")
+        for j in range(2, N, step):
+            if D[i][j] != -1:
+                continue
+            if j - margin >= N:
+                continue
+            print(f"q 1 {i} {j - margin}")
+            debug(f"{AHC30} q 1 {i} {j - margin}")  # ! comment when submittion
+            result = int(input())
+            D[i][j - margin] = result
+            P[i][j - margin] = result
+
+    debug_d()
+
+    # 各油田が存在できる配置とその数を数える
+    for m in range(M):
+        oil = oils[m]
+        height, width = oil_ends[m]
+        for si in range(N - height):
+            for sj in range(N - width):
+                is_ng = False
+                for di, dj in oil:
+                    i = si + di
+                    j = sj + dj
+                    if i >= N or j >= N:
+                        is_ng |= True
+                    if D[i][j] == 0:
+                        is_ng |= True
+                if is_ng:
+                    continue
+                C[m].append((si, sj))
+    debug(f"{C=}")
+    # debug(f"{C[0]=}")
+    # exit()
+    # 現在の考えられる組み合わせを求める
+    num_products = 1
+    for c in C:
+        num_products *= len(c)
+    debug(f"{num_products=}")
+
+    """
+    2000 以下なら State として保存し自己占いを行う。
+    そうでない場合すべての油田が存在できる場所を調べちょうど約半分が存在できる場所から優先的に数点掘る
+    """
+    debug_count = 0
+    while num_products >= 2000:
+        B = [[0] * N for _ in range(N)]  # 重ね合わせた油田の配置
+        # debug(f"{M=}")
+        for m in range(M):
+            c = C[m]
+            oil = oils[m]
+            # debug(f"{c=}, {oil=}")
+            tmp = [[0] * N for _ in range(N)]
+            ng = False
+            # debug(f"{m=}")
+            # debug(f"{c=}")
+            for sx, sy in c:
+                for dx, dy in oil:
+                    x = sx + dx
+                    y = sy + dy
+                    if D[x][y] == 0:
+                        ng = True
+                    else:
+                        tmp[x][y] |= 1
+            # ng = False なら B に反映させる
+            if not ng:
+                for i in range(N):
+                    for j in range(N):
+                        if tmp[i][j] == 1:
+                            B[i][j] += 1 << m
+            # debug_b()
+            # exit()
+        debug_b()
+        # exit()
+
+        # できる限り中央に近いところを１つピックしその他の候補も q に入れておく
+        q_first, q_second = [], []
+        best_i, best_j, best_diff, best_dist = -1, -1, 10000, 10000
+        cur_diff = 0
+        for cur_diff in range(N):
+            for i in range(N):
+                for j in range(N):
+                    if D[i][j] != -1:
+                        continue
+                    if B[i][j] == 0:
+                        continue
+                    v = abs(M / 2 - B[i][j].bit_count() - cur_diff)
+                    if v > best_diff:
+                        continue
+                    dist = abs(N / 2 - i) + abs(N / 2 - j)
+                    if dist > best_dist:
+                        continue
+                    best_i, best_j, best_diff, best_dist = i, j, v, dist
+        cur_diff = min(int(M * 0.2), 1)
+        for i in range(N):
+            for j in range(N):
+                if B[i][j] == 0:
+                    continue
+                if i == best_i and j == best_j:
+                    q_first.append((i, j))
+                    continue
+                if abs(M / 2 - B[i][j].bit_count()) <= cur_diff:
+                    q_first.append((i, j))
+                else:
+                    q_second.append((i, j))
+
+        if len(q_first) < 10:
+            # ランダムに q_second から 10 - q_first 個選ぶ
+            for i in sample(q_second, 10 - len(q_first)):
+                debug(f"{i=}")
+                q_first.append(i)
+        # debug(f"{best_i=}, {best_j=}, {best_diff=}, {best_dist=}")
+        debug(f"{q_first=}, {q_second=}")
+        initial_idx = q_first.index((best_i, best_j))
+        samples = farthest_point_sampling(q_first, initial_idx, 5)
+        debug(f"{samples=}")
+        # samples をすべて掘る
+        for i, j in samples:
+            print(f"q 1 {i} {j}")
+            debug(f"{AHC30} q 1 {i} {j}")
+            result = int(input())
+            debug(f"{AHC30} {result=}")
+            D[i][j] = result
+            P[i][j] = result
+        debug_d()
+        # exit()
+        # 各油田が存在できる配置とその数を数える
+        C = [[] for _ in range(M)]  # 各油田が配置できる場所
+        for m in range(M):
+            oil = oils[m]
+            height, width = oil_ends[m]
+            for sx in range(N - height):
+                for sy in range(N - width):
+                    is_ng = False
+                    for dx, dy in oil:
+                        x = sx + dx
+                        y = sy + dy
+                        if x >= N or y >= N:
+                            is_ng |= True
+                        if D[x][y] == 0:
+                            is_ng |= True
+                    if is_ng:
+                        continue
+                    C[m].append((sx, sy))
+        # debug(f"{C=}")
+        # 現在の考えられる組み合わせを求める
+        num_products = 1
+        for c in C:
+            num_products *= len(c)
+        debug(f"{num_products=}, {debug_count=}")
+        # if debug_count == 60:
+        #     exit()
+        # else:
+        #     debug_count += 1
+
+    # State として保存する
+    states = []
+    for p in itertools.product(*C):
+        state = State()
+        state.oils = p
+        for m, (si, sj) in enumerate(p):
+            for di, dj in oils[m]:
+                ni = si + di
+                nj = sj + dj
+                state.overlapped_oils[ni][nj] += 1
+        # dpprint(state.overlapped_oils)
+        states.append(state)
+
+    C = [[0] * N for _ in range(N)]  # 各油田が配置できる場所
+
+    # すべてのマスを小さな四角形で一度ずつ占うようにする
+    # 四角形を横長、縦長、正方形のいずれにするか調べる。縦 / 横 が 1.5 以上なら横長、逆なら縦長、それ以外なら正方形
+    rectangle_counts = [0, 0, 0]  # 前から 0: 正方形, 1: 横長, 2: 縦長
+    for m in range(M):
+        height, width = oil_ends[m]
+        if height == 0:
+            rectangle_counts[1] += 1
+            continue
+        if width == 0:
+            rectangle_counts[2] += 1
+            continue
+        if height / width > 1.5:
+            rectangle_counts[2] += 1
+        elif width / height > 1.5:
+            rectangle_counts[1] += 1
+        else:
+            rectangle_counts[0] += 1
+    # debug(f"{AHC30} {rectangle_counts=}")  # ! comment when submittion
+    i = max((j, i) for i, j in enumerate(rectangle_counts))[1]
+    scry_type = ""
+    match i:
+        case 0:  # 正方形
+            scry_type = "square"
+            # 3 x 3 の正方形で探索する
+            if eps <= 0.03:
+                scry_oil_width = 5
+                scry_oil_height = 5
+            else:
+                scry_oil_width = 3
+                scry_oil_height = 3
+        case 1:  # 横長
+            scry_type = "yokonaga"
+            # 2 x 3 の横長で探索する
+            if eps <= 0.03:
+                scry_oil_width = 4
+                scry_oil_height = 6
+            else:
+                scry_oil_width = 2
+                scry_oil_height = 3
+        case 2:  # 縦長
+            scry_type = "tatenaga"
+            # 3 x 2 の縦長で探索する
+            if eps <= 0.03:
+                scry_oil_width = 6
+                scry_oil_height = 4
+            else:
+                scry_oil_width = 3
+                scry_oil_height = 2
+    # debug(f"{AHC30} {i=} {scry_type=}")  # ! comment when submittion
+
+    # N x N のマスを scry_oil で探索するため Area に分割する
+    areas: list[Area] = []
+    for i in range(0, N, scry_oil_height):
+        for j in range(0, N, scry_oil_width):
+            area = Area()
+            for k in range(scry_oil_height):
+                for l in range(scry_oil_width):
+                    if i + k < N and j + l < N and D[i + k][j + l] == -1:
+                        area.x.append(i + k)
+                        area.y.append(j + l)
+            if area.x:
+                areas.append(area)
+    # debug(f"{AHC30} {len(areas)=}")  # ! comment when submittion
+    # debug(f"{AHC30} {areas=}")  # ! comment when submittion
+
+    # すべてのエリアで占う
+    for area in areas:
+        area.scry()
+
+    # AHC30 自身で各 State に対して predict を a 回行いその結果の平均を scried_oils に保存する
+    a = 100
+    for state in states:
+        for _ in range(a):
+            for area in areas:
+                vs = 0
+                k = len(area.x)
+                for x, y in zip(area.x, area.y):
+                    vs += state.overlapped_oils[x][y]
+                result = predict(vs, k)
+                oil_value = result / k
+                for x, y in zip(area.x, area.y):
+                    state.scried_oils[x][y] += oil_value
+        # 平均化する
+        for i in range(N):
+            for j in range(N):
+                state.scried_oils[i][j] /= a
+
+    # 各 State と P の間の距離を求める
+    sorted_dist = sorted([(state.dist(), i) for i, state in enumerate(states)])
+    sorted_idx = [i for _, i in sorted_dist]
+    debug(f"{AHC30} {sorted_dist[:3]=}")  # ! comment when submittion
+    # debug(f"{AHC30} {sorted_idx=}")  # ! comment when submittion
+    debug(states[sorted_dist[0][1]])  # ! comment when submittion
+
+    # 一番距離が近い State からを answer として query を送る
+    cur = 0
+    while True:
+        states[sorted_idx[cur]].answer()
+        cur += 1
+        judge = int(input())
+        debug(f"{AHC30} {judge=}")  # ! comment when submittion
+        # assert judge == 1
+        if judge == 1:
+            print("c")
+            exit()
+    exit()
+
 
 def play_random() -> None:
     global C, P, D, G
@@ -775,12 +1136,13 @@ def main() -> None:
     # play_random()
     # play_all_dig()
     # play_all_dig_with_counting_and_superposing()
-    if (N**2)**M < 2500000:
-        play_brute_force()
-    else:
-        # play_all_dig()
-        # play_all_dig_with_counting()
-        play_all_dig_with_counting_and_superposing()
+    play_self_scry_loop()
+    # if (N**2)**M < 2500000:
+    #     play_brute_force()
+    # else:
+    #     # play_all_dig()
+    #     # play_all_dig_with_counting()
+    #     play_all_dig_with_counting_and_superposing()
 
 
 if __name__ == "__main__":
